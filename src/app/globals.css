@@ -1,0 +1,130 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Florenza Dashboard theme
+  Warm editorial dark palette pulled from the Florenza brand direction:
+  espresso backgrounds, brass/gold accent, muted clay for secondary states,
+  sage for positive signals. No pure black, no cool grays, no default
+  near-black + acid-green combo.
+*/
+:root {
+  --radius: 0.625rem;
+
+  --background: #14110d;
+  --foreground: #ece4d8;
+
+  --card: #1b1611;
+  --card-foreground: #ece4d8;
+
+  --popover: #1d1813;
+  --popover-foreground: #ece4d8;
+
+  --primary: #c9a668;
+  --primary-foreground: #1a140d;
+
+  --secondary: #241d16;
+  --secondary-foreground: #ece4d8;
+
+  --muted: #201a14;
+  --muted-foreground: #a5978a;
+
+  --accent: #2a2117;
+  --accent-foreground: #e8dcc8;
+
+  --destructive: #9a4c42;
+  --destructive-foreground: #f4e6e1;
+
+  --success: #7c8b6f;
+  --success-foreground: #14110d;
+
+  --border: #2c2419;
+  --input: #2c2419;
+  --ring: #c9a668;
+
+  --sidebar: #100d0a;
+  --sidebar-foreground: #ece4d8;
+  --sidebar-primary: #c9a668;
+  --sidebar-primary-foreground: #1a140d;
+  --sidebar-accent: #1c160f;
+  --sidebar-accent-foreground: #ece4d8;
+  --sidebar-border: #221c14;
+  --sidebar-ring: #c9a668;
+
+  --chart-1: #c9a668;
+  --chart-2: #7c8b6f;
+  --chart-3: #9a4c42;
+  --chart-4: #6f7f8b;
+  --chart-5: #8a7048;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+}
+
+/* subtle warm grain / vignette so the dark theme doesn't read flat */
+.bg-editorial-noise {
+  background-image: radial-gradient(circle at 15% 0%, rgba(201, 166, 104, 0.06), transparent 45%);
+}
