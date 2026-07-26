@@ -2,7 +2,6 @@ import JSZip from "jszip";
 import { NextResponse } from "next/server";
 
 import { renderSiteHtml } from "@/lib/export-html";
-import { netlifyToml, checkoutFunctionSource } from "@/lib/netlify-function";
 import type { Block } from "@/lib/website-data";
 
 type NetlifySite = {
@@ -43,8 +42,6 @@ export async function POST(request: Request) {
 
   const zip = new JSZip();
   zip.file("index.html", html);
-  zip.file("netlify.toml", netlifyToml);
-  zip.file("netlify/functions/create-checkout-session.js", checkoutFunctionSource);
   const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 
   const endpoint = siteId

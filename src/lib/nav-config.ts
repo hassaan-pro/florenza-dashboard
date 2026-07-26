@@ -50,13 +50,8 @@ export const navGroups: NavGroup[] = [
         title: "Business Structure",
         href: "/business-structure",
         icon: Building2,
-        description:
-          "How Florenza is organized: entity setup, roles, ownership, and operating workflows.",
-        comingSoon: [
-          "Org chart and role ownership across marketing, ops, and fulfillment",
-          "Documented SOPs and decision rights",
-          "Entity and compliance reference docs",
-        ],
+        description: "Org structure, reporting lines, and SOPs across marketing, ops, fulfillment, finance.",
+        comingSoon: [],
       },
       {
         title: "Product Management",
@@ -81,12 +76,8 @@ export const navGroups: NavGroup[] = [
         title: "Vendor Management",
         href: "/vendor-management",
         icon: Truck,
-        description: "Florists, wrap suppliers, and delivery partners in one place.",
-        comingSoon: [
-          "Vendor directory with lead times and QC history",
-          "Purchase order tracking",
-          "Vendor scorecards (reliability, quality, price)",
-        ],
+        description: "Florists, wrap suppliers, and delivery partners, with scorecards and purchase orders.",
+        comingSoon: [],
       },
       {
         title: "Orders",
@@ -119,12 +110,8 @@ export const navGroups: NavGroup[] = [
         title: "Content Dashboard",
         href: "/content-dashboard",
         icon: LayoutDashboard,
-        description: "The command center for everything Florenza is publishing.",
-        comingSoon: [
-          "Content pipeline across pillars: Soft Life, For Them, Just Because, Dark Romance, Golden Hour",
-          "Grid batch status and post queue",
-          "Asset library for compositing sources and generated scenes",
-        ],
+        description: "Pillar breakdown (live from Instagram Manager), grid batches, and the asset library.",
+        comingSoon: [],
       },
       {
         title: "Instagram Manager",

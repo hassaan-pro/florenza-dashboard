@@ -106,11 +106,11 @@ function renderBlock(block: Block): string {
  * Keep the markup here in sync with site-preview.tsx by hand if that
  * component's structure changes.
  *
- * Includes a real cart + checkout: vanilla JS (no framework at runtime),
- * cart persisted in localStorage, checkout POSTs to a Netlify Function
- * (`/.netlify/functions/create-checkout-session`, bundled alongside this
- * HTML by the Hosting dialog's deploy) which creates a real Stripe
- * Checkout session server-side and returns its URL for redirect.
+ * Includes a real cart: vanilla JS (no framework at runtime), cart
+ * persisted in localStorage, add/remove/adjust quantity all work.
+ * Checkout is intentionally disabled ("Checkout coming soon") — payment
+ * processing was deliberately removed pending a different provider, see
+ * CLAUDE.md's Website Builder notes for why Stripe was pulled out.
  *
  * Honest limitation: layout classes are Tailwind utility classes with no
  * build step to compile them, this loads Tailwind via the public CDN
@@ -178,8 +178,8 @@ function cartDrawerMarkup(): string {
           <span style="color:${storefront.muted}">Subtotal</span>
           <span id="fz-cart-subtotal" style="color:${storefront.ink}">Rs 0</span>
         </div>
-        <button id="fz-checkout" style="display:flex;align-items:center;justify-content:center;gap:8px;border-radius:9999px;padding:10px 20px;font-size:14px;font-weight:500;color:white;background:${storefront.accent}">Checkout with Stripe</button>
-        <p id="fz-checkout-error" style="display:none;font-size:11px;text-align:center;color:#dc2626;"></p>
+        <button disabled style="display:flex;align-items:center;justify-content:center;gap:8px;border-radius:9999px;padding:10px 20px;font-size:14px;font-weight:500;color:white;background:${storefront.accent};opacity:0.5;cursor:not-allowed;">Checkout coming soon</button>
+        <p style="font-size:11px;text-align:center;color:${storefront.muted}">Payment processing isn't connected yet.</p>
       </div>
     </div>
   </div>`;
@@ -252,33 +252,6 @@ function cartScript(): string {
     if (target.getAttribute("data-action") === "remove") {
       var rid = target.getAttribute("data-id");
       setCart(getCart().filter(function (i) { return i.id !== rid; }));
-    }
-    if (target.id === "fz-checkout") {
-      var cart2 = getCart();
-      var errorEl = document.getElementById("fz-checkout-error");
-      errorEl.style.display = "none";
-      if (cart2.length === 0) return;
-      target.textContent = "Redirecting…";
-      fetch("/.netlify/functions/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart2.map(function (i) { return { name: i.name, unitAmountMajor: i.price, quantity: i.quantity }; }) })
-      })
-        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-        .then(function (result) {
-          if (!result.ok) {
-            errorEl.textContent = result.data.error || "Checkout failed.";
-            errorEl.style.display = "block";
-            target.textContent = "Checkout with Stripe";
-            return;
-          }
-          window.location.href = result.data.url;
-        })
-        .catch(function () {
-          errorEl.textContent = "Couldn't reach the checkout service.";
-          errorEl.style.display = "block";
-          target.textContent = "Checkout with Stripe";
-        });
     }
   });
 

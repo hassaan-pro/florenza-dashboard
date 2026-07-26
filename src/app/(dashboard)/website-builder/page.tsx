@@ -10,7 +10,6 @@ import { InspectorPanel } from "@/components/website-builder/inspector-panel";
 import { SitePreview } from "@/components/website-builder/site-preview";
 import { DomainDialog } from "@/components/website-builder/domain-dialog";
 import { HostingDialog } from "@/components/website-builder/hosting-dialog";
-import { PaymentsDialog } from "@/components/website-builder/payments-dialog";
 import {
   type Block,
   type BlockType,
@@ -24,8 +23,6 @@ export default function WebsiteBuilderPage() {
   const [selectedId, setSelectedId] = useState<string | null>(blocks[0]?.id ?? null);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [published, setPublished] = useState(false);
-  const [stripeKey, setStripeKey] = useState("");
-  const [currency, setCurrency] = useState("PKR");
 
   const selected = blocks.find((b) => b.id === selectedId) ?? null;
 
@@ -78,12 +75,6 @@ export default function WebsiteBuilderPage() {
         <div className="flex items-center gap-2">
           <DomainDialog />
           <HostingDialog blocks={blocks} />
-          <PaymentsDialog
-            stripeKey={stripeKey}
-            onStripeKeyChange={setStripeKey}
-            currency={currency}
-            onCurrencyChange={setCurrency}
-          />
           <Button size="sm" onClick={handlePublish}>
             {published ? <CheckCircle2 className="size-4" /> : <Rocket className="size-4" />}
             {published ? "Saved" : "Publish"}
@@ -94,12 +85,11 @@ export default function WebsiteBuilderPage() {
       <div className="flex items-start gap-2.5 rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-foreground/85">
         <Info className="size-4 shrink-0 mt-0.5 text-primary" strokeWidth={1.75} />
         <p>
-          The preview below has a real cart, add products, open the cart, hit checkout, it
-          creates an actual Stripe Checkout session (add a key in{" "}
-          <span className="text-foreground">Payments</span> first) and sends you to Stripe&apos;s
-          real hosted payment page. &quot;Publish&quot; just saves your layout for this session.
-          For a live URL, use <span className="text-foreground">Hosting</span>, it deploys a
-          real static export, cart included, to your own Netlify account. The{" "}
+          The preview below has a real cart, add products, open the cart, quantities and
+          subtotal all work. Checkout is intentionally disabled for now, payment processing is
+          coming later with a different provider. &quot;Publish&quot; just saves your layout for
+          this session. For a live URL, use <span className="text-foreground">Hosting</span>,
+          it deploys a real static export, cart included, to your own Netlify account. The{" "}
           <span className="text-foreground">Domain</span> button does a real DNS ownership
           check. Images are still placeholders, drop in real Florenza photography before this
           goes anywhere near real customers.
@@ -151,7 +141,7 @@ export default function WebsiteBuilderPage() {
                 device === "mobile" ? "max-w-[375px]" : "max-w-full"
               )}
             >
-              <SitePreview blocks={blocks} stripeKey={stripeKey} currency={currency} />
+              <SitePreview blocks={blocks} />
             </div>
           </div>
         </div>

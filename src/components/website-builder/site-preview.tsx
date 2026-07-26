@@ -11,15 +11,13 @@ import {
   Minus,
   Plus,
   Trash2,
-  Lock,
-  Loader2,
+  Clock,
 } from "lucide-react";
 
 import { seedProducts, formatPKR, type Product } from "@/lib/product-data";
 import { storefront, type Block } from "@/lib/website-data";
 
 type CartItem = { productId: string; name: string; price: number; quantity: number };
-type CheckoutState = "idle" | "loading" | "error";
 
 function ImagePlaceholder({ note, className }: { note: string; className?: string }) {
   return (
@@ -220,19 +218,11 @@ function CartDrawer({
   onClose,
   onUpdateQty,
   onRemove,
-  onCheckout,
-  checkoutState,
-  checkoutError,
-  hasStripeKey,
 }: {
   items: CartItem[];
   onClose: () => void;
   onUpdateQty: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
-  onCheckout: () => void;
-  checkoutState: CheckoutState;
-  checkoutError: string | null;
-  hasStripeKey: boolean;
 }) {
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -297,45 +287,25 @@ function CartDrawer({
             <span style={{ color: storefront.ink }}>{formatPKR(subtotal)}</span>
           </div>
           <button
-            onClick={onCheckout}
-            disabled={items.length === 0 || checkoutState === "loading" || !hasStripeKey}
-            className="flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            disabled
+            className="flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-white opacity-50 cursor-not-allowed"
             style={{ background: storefront.accent }}
           >
-            {checkoutState === "loading" ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Lock className="size-3.5" />
-            )}
-            Checkout with Stripe
+            <Clock className="size-3.5" />
+            Checkout coming soon
           </button>
-          {!hasStripeKey && (
-            <p className="text-[11px] text-center" style={{ color: storefront.muted }}>
-              Add a Stripe key in the Payments dialog above to enable checkout.
-            </p>
-          )}
-          {checkoutState === "error" && checkoutError && (
-            <p className="text-[11px] text-center text-red-600">{checkoutError}</p>
-          )}
+          <p className="text-[11px] text-center" style={{ color: storefront.muted }}>
+            Payment processing isn&apos;t connected yet, cart and quantities work, checkout is next.
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-export function SitePreview({
-  blocks,
-  stripeKey,
-  currency,
-}: {
-  blocks: Block[];
-  stripeKey: string;
-  currency: string;
-}) {
+export function SitePreview({ blocks }: { blocks: Block[] }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [checkoutState, setCheckoutState] = useState<CheckoutState>("idle");
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -366,32 +336,6 @@ export function SitePreview({
 
   function cartQuantity(id: string) {
     return cart.find((i) => i.productId === id)?.quantity ?? 0;
-  }
-
-  async function handleCheckout() {
-    setCheckoutState("loading");
-    setCheckoutError(null);
-    try {
-      const res = await fetch("/api/checkout/create-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart.map((i) => ({ name: i.name, unitAmountMajor: i.price, quantity: i.quantity })),
-          secretKey: stripeKey,
-          currency,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setCheckoutState("error");
-        setCheckoutError(data.error ?? "Checkout failed.");
-        return;
-      }
-      window.location.href = data.url;
-    } catch {
-      setCheckoutState("error");
-      setCheckoutError("Couldn't reach the checkout service.");
-    }
   }
 
   return (
@@ -442,10 +386,6 @@ export function SitePreview({
           onClose={() => setCartOpen(false)}
           onUpdateQty={updateQty}
           onRemove={removeItem}
-          onCheckout={handleCheckout}
-          checkoutState={checkoutState}
-          checkoutError={checkoutError}
-          hasStripeKey={stripeKey.trim().length > 0}
         />
       )}
     </div>

@@ -1,32 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { Info } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { BoardColumn } from "@/components/instagram-manager/board-column";
 import { AddPostDialog } from "@/components/instagram-manager/add-post-dialog";
-import {
-  type Post,
-  type PostStatus,
-  postStatuses,
-  seedPosts,
-} from "@/lib/instagram-data";
+import { postStatuses } from "@/lib/instagram-data";
+import { useInstagramPosts } from "@/lib/instagram-context";
 
 export default function InstagramManagerPage() {
-  const [posts, setPosts] = useState<Post[]>(seedPosts);
-
-  function addPost(post: Post) {
-    setPosts((prev) => [post, ...prev]);
-  }
-
-  function changeStatus(id: string, status: PostStatus) {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
-  }
-
-  function removePost(id: string) {
-    setPosts((prev) => prev.filter((p) => p.id !== id));
-  }
+  const { posts, addPost, changeStatus, removePost } = useInstagramPosts();
 
   return (
     <div className="space-y-6">
@@ -49,8 +32,9 @@ export default function InstagramManagerPage() {
         <p>
           The posts below are placeholder sample content so the board works out of the box.
           Add your own via <span className="text-foreground">New post idea</span>, or clear
-          the seed list in <code className="text-xs">src/lib/instagram-data.ts</code>. Nothing
-          persists between reloads yet, there&apos;s no data layer wired up.
+          the seed list in <code className="text-xs">src/lib/instagram-data.ts</code>. This data
+          is shared with Content Dashboard&apos;s pillar breakdown, add a post here and it shows
+          up there. Nothing persists between reloads yet, there&apos;s no data layer wired up.
         </p>
       </div>
 

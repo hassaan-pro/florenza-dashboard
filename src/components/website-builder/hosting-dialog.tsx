@@ -105,10 +105,8 @@ export function HostingDialog({ blocks }: { blocks: Block[] }) {
               <p className="text-sm text-foreground">Download static HTML</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 A single self-contained <code className="text-[11px]">index.html</code>, upload it
-                to any static host you like. Heads up: its checkout button calls a Netlify
-                Function that only exists if you deploy via the option below, on another host
-                the cart still works but checkout will 404 until you wire up an equivalent
-                endpoint there yourself.
+                to any static host you like. Cart works out of the box, checkout is intentionally
+                disabled for now pending a payment provider.
               </p>
             </div>
             <Button size="sm" variant="outline" onClick={handleExport}>
@@ -210,14 +208,11 @@ export function HostingDialog({ blocks }: { blocks: Block[] }) {
             <AlertTriangle className="size-3.5 shrink-0 mt-0.5 text-destructive" strokeWidth={1.75} />
             <p>
               Your token is sent straight to Netlify&apos;s API from this app&apos;s server and isn&apos;t
-              stored or logged anywhere. The deploy also bundles a Netlify Function that powers
-              checkout, after your first deploy, add a{" "}
-              <code className="text-[11px]">STRIPE_SECRET_KEY</code> environment variable in
-              that Netlify site&apos;s settings (Site configuration → Environment variables) and
-              redeploy, or checkout on the live site will return a clear error instead of
-              silently failing. The deployed page is styled via a Tailwind CDN script, not a
-              compiled stylesheet, fine for a real preview, not what you&apos;d want serving real
-              production traffic long-term. To use the domain you verified in the{" "}
+              stored or logged anywhere. Checkout is intentionally disabled on the deployed site
+              too, cart and quantities work, payment is coming later with a different provider.
+              The deployed page is styled via a Tailwind CDN script, not a compiled stylesheet,
+              fine for a real preview, not what you&apos;d want serving real production traffic
+              long-term. To use the domain you verified in the{" "}
               <span className="text-foreground">Domain</span> dialog, add it as a custom domain
               on this Netlify site after your first deploy.
             </p>
