@@ -1,8 +1,8 @@
 import JSZip from "jszip";
 import { NextResponse } from "next/server";
 
-import { renderSiteHtml } from "@/lib/export-html";
-import type { Block } from "@/lib/website-data";
+import { renderSiteFiles } from "@/lib/export-html";
+import type { Site } from "@/lib/website-data";
 
 type NetlifySite = {
   id: string;
@@ -17,7 +17,9 @@ type NetlifySite = {
  * behind Netlify's own drag-and-drop deploy and its "Deploy to Netlify"
  * buttons. The token is the person's own Netlify personal access token,
  * sent directly to Netlify's API from this server and never logged or
- * persisted anywhere in this app.
+ * persisted anywhere in this app. Deploys all four pages (index.html,
+ * shop.html, product.html, cart.html) in one zip, Netlify serves each
+ * as a real path on the deployed site.
  *
  * - No `siteId` provided -> POST /sites, creates a brand new site and
  *   deploys the zip in one call. Returns the new site's id so the caller
@@ -27,21 +29,22 @@ type NetlifySite = {
  */
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  const blocks = body?.blocks as Block[] | undefined;
+  const site = body?.site as Site | undefined;
   const token = typeof body?.token === "string" ? body.token.trim() : "";
   const siteId = typeof body?.siteId === "string" ? body.siteId.trim() : "";
 
-  if (!blocks || !Array.isArray(blocks)) {
-    return NextResponse.json({ error: "Missing or invalid blocks." }, { status: 400 });
+  if (!site || !Array.isArray(site.home)) {
+    return NextResponse.json({ error: "Missing or invalid site." }, { status: 400 });
   }
   if (!token) {
     return NextResponse.json({ error: "Missing Netlify personal access token." }, { status: 400 });
   }
 
-  const html = renderSiteHtml(blocks);
-
+  const files = renderSiteFiles(site);
   const zip = new JSZip();
-  zip.file("index.html", html);
+  for (const [name, content] of Object.entries(files)) {
+    zip.file(name, content);
+  }
   const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 
   const endpoint = siteId
@@ -67,11 +70,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: res.status });
   }
 
-  const site: NetlifySite = siteId ? { ...data, id: siteId } : data;
+  const site_: NetlifySite = siteId ? { ...data, id: siteId } : data;
 
   return NextResponse.json({
-    url: site.ssl_url ?? site.url,
-    adminUrl: site.admin_url,
-    siteId: site.id,
+    url: site_.ssl_url ?? site_.url,
+    adminUrl: site_.admin_url,
+    siteId: site_.id,
   });
 }

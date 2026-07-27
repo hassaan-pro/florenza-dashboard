@@ -12,7 +12,9 @@ Read this before adding a feature or a new section.
 - **lucide-react** for icons
 - **class-variance-authority** + **tailwind-merge** + **clsx** for variant-driven component styling
 
-No backend, no database, no auth yet. Six sections (Product Management, Instagram Manager, Content Calendar, Competitor Tracker, News Consolidator, Website Builder) are built out with real client-side state — News Consolidator and Website Builder's domain check also have real server-side API routes (live RSS fetch, and a real DNS lookup, respectively). The rest are routed placeholders. Data layer gets wired in per-section as each one gets built out.
+No backend, no database, no auth yet. Nine sections (Product Management, Instagram Manager, Content Calendar, Competitor Tracker, News Consolidator, Website Builder, Vendor Management, Business Structure, Content Dashboard) are built out with real client-side state — News Consolidator, Website Builder's domain check, and Website Builder's hosting deploy also have real server-side API routes (live RSS fetch, a real DNS lookup, and a real Netlify deploy, respectively). The rest are routed placeholders. Data layer gets wired in per-section as each one gets built out.
+
+This repo is connected to GitHub (`hassaan-pro/florenza-dashboard`) and deployed on Vercel from the `main` branch — pushes to `main` auto-deploy. Vercel's Framework Preset must be set to Next.js in Project Settings (it does **not** auto-redetect after the project already exists, only at creation, this bit Hassaan once already after a broken GitHub web-upload nested the project in subfolders and Vercel locked in "Other").
 
 ## Why no shadcn CLI
 
@@ -30,18 +32,18 @@ src/
       news/route.ts            # Server-side RSS fetch + parse for News Consolidator
       domain/verify/route.ts    # Server-side real DNS TXT lookup for Website Builder's domain check
       hosting/
-        export/route.ts          # Returns the built page as a downloadable static index.html
-        deploy/route.ts          # Zips the static export and deploys to Netlify via the user's own token
+        export/route.ts          # Zips all 4 site pages, returns florenza-site.zip for direct download
+        deploy/route.ts          # Zips all 4 site pages and deploys to Netlify via the user's own token
     (dashboard)/              # Route group — everything that gets the sidebar shell
-      layout.tsx               # Renders <AppSidebar/> + <Topbar/> + page content
+      layout.tsx               # Renders <AppSidebar/> + <Topbar/> + page content, wrapped in InstagramPostsProvider
       business-analytics/page.tsx
-      business-structure/page.tsx
+      business-structure/page.tsx  # BUILT OUT — see below
       product-management/page.tsx  # BUILT OUT — see below
       revenue/page.tsx
-      vendor-management/page.tsx
+      vendor-management/page.tsx   # BUILT OUT — see below
       orders/page.tsx
       order-fulfillment/page.tsx
-      content-dashboard/page.tsx
+      content-dashboard/page.tsx   # BUILT OUT — see below
       instagram-manager/page.tsx   # BUILT OUT — see below
       analytics/page.tsx
       content-calendar/page.tsx    # BUILT OUT — see below
@@ -58,18 +60,25 @@ src/
     content-calendar/          # Month grid, day detail dialog, platform filters, add-item dialog
     competitor-tracker/        # Sortable table, add-competitor dialog
     news-consolidator/         # News card, topic filter
-    website-builder/           # Block list, inspector panel, site preview, domain dialog
+    website-builder/           # Block list, inspector panel, Shop config panel, site preview (multi-page), domain dialog, hosting dialog
+    vendor-management/         # Vendor table, add-vendor dialog, purchase order section
+    business-structure/        # Org roles grouped by department, add-role dialog, SOP section
+    content-dashboard/         # Pillar breakdown (real data via shared context), grid batch section, asset library
     ui/                        # Hand-authored shadcn-style primitives: button, card, badge, separator,
                                 # sheet, dialog, input, textarea, label, select, dropdown-menu
   lib/
     nav-config.ts              # SINGLE SOURCE OF TRUTH for every section: title, route, icon, description, "coming soon" bullets
     product-data.ts            # Product Management data model, seed data, margin math (also consumed by Website Builder)
     instagram-data.ts          # Instagram Manager data model, seed data
+    instagram-context.tsx      # Shared InstagramPostsProvider/useInstagramPosts — real cross-section data source (Instagram Manager <-> Content Dashboard)
     calendar-data.ts           # Content Calendar data model, seed data, month-grid helper
     competitor-data.ts         # Competitor Tracker data model, seed data
     news-data.ts                # News Consolidator types, feed source list, topic classifier, fallback data
-    website-data.ts             # Website Builder block types, starter template, storefront palette
-    export-html.ts               # Plain-string-template HTML generation for Website Builder's export/deploy (deliberately not React SSR — see Website Builder notes), including the vanilla-JS cart
+    website-data.ts             # Website Builder: Block/Site types, defaultSite(), sitePages list, storefront palette
+    export-html.ts               # Plain-string-template HTML generation for all 4 Website Builder pages (deliberately not React SSR — see Website Builder notes)
+    vendor-data.ts               # Vendor Management data model, seed data
+    business-structure-data.ts   # Business Structure data model (roles, SOPs), seed data
+    content-dashboard-data.ts    # Content Dashboard's own data model (grid batches, assets) — pillar breakdown itself comes from instagram-context.tsx, not this file
     utils.ts                   # `cn()` class merge helper
 ```
 
@@ -90,38 +99,69 @@ Every section starts as a `PageShell` placeholder (see below). **Product Managem
 
 ### Website Builder (`/website-builder`)
 
-Section-based builder for the Florenza storefront: add/reorder/edit content blocks, live preview with a working cart, device toggle, real domain verification, real hosting deploy. Read this section before extending it, the scope was deliberately drawn in a specific place and it's easy to accidentally promise more than the code delivers.
+Real, separate pages, not one long scrolling page. Home, Shop, Product, Cart, matching how an actual e-commerce site (and Shopify's own template model) is structured. This replaced an earlier single-page block-list design on request (2026-07) — if you're reading anything older that describes Website Builder as one continuous page, that's stale.
 
-**Payments were deliberately removed (2026-07).** An earlier pass wired up real Stripe Checkout, both in-app (`/api/checkout/create-session`) and on the deployed site (a bundled Netlify Function reading a `STRIPE_SECRET_KEY` env var). All of that was pulled out on request — Florenza wants a different payment provider added later, and didn't want a Stripe integration left half-connected in the meantime. If you're reading old context (a summary, a stale doc, an old commit) that describes checkout as working, it no longer is, don't rebuild toward that until asked. What's gone: `src/app/api/checkout/`, `src/lib/netlify-function.ts`, `payments-dialog.tsx`, the `netlify.toml`/function bundling in the deploy zip, and the "Checkout with Stripe" button. What's still there: the cart itself (add to cart, quantities, subtotal, in both the in-app preview and the deployed static export) — its checkout button is present but disabled, labeled "Checkout coming soon," in both `site-preview.tsx` and `export-html.ts`. When a payment provider is chosen, wire the button in both places, they're independent implementations (see the React-SSR note below for why).
+**Page model**: `Home` is the free-form block editor (add/reorder/edit/delete blocks, same UX as before). `Shop`, `Product`, and `Cart` are **templated pages**, not block-built — fixed structure, a small amount of editable copy where it makes sense (Shop has an editable heading/subheading), the rest driven entirely by real data (the product catalogue, the cart). This mirrors how Shopify itself works: you freely edit the home page's sections, but the collection/product/cart page *templates* have a fixed shape you configure, not rebuild from blocks.
+
+**Payments were deliberately removed (2026-07).** An earlier pass wired up real Stripe Checkout, both in-app and on the deployed site (a bundled Netlify Function). All of that was pulled out on request — Florenza wants a different payment provider added later, and didn't want a Stripe integration left half-connected in the meantime. If you're reading old context describing checkout as working, it isn't, don't rebuild toward that until asked. Every page's checkout button is present but disabled, labeled "Checkout coming soon."
 
 **What's real:**
-- The block editor is fully functional — add, reorder (up/down, not drag-and-drop), edit, delete blocks; every field updates the live preview immediately.
-- **Featured Products pulls actual data from Product Management** (`seedProducts` in `src/lib/product-data.ts`) — this is the one place in the dashboard where two built-out sections are wired together. If Product Management's catalogue gets replaced with real SKUs, this block picks it up automatically.
-- **The cart is real**, not a mock, checkout just isn't connected to anything yet. `site-preview.tsx` has an actual cart (add/remove/adjust quantity, running subtotal), same in the deployed static export via `localStorage` and vanilla JS (`cartScript()` in `export-html.ts`).
-- **Domain verification is a real DNS lookup.** `src/app/api/domain/verify/route.ts` uses Node's `dns.promises.resolveTxt()` server-side to check for a TXT record on a domain the person actually controls. This genuinely works on any real domain, it is not a simulated/fake check.
-- **Hosting is a real deploy**, not a mock. `src/app/api/hosting/deploy/route.ts` zips a generated `index.html` (via `jszip`) and POSTs it to Netlify's zip-deploy API (`api.netlify.com/api/v1/sites` or `/sites/{id}/deploys`) using the person's own Netlify personal access token, entered in `hosting-dialog.tsx` and sent straight through, never stored or logged. First deploy creates a new Netlify site and returns its `site_id`; pass that `site_id` back in on the next deploy to update the same site instead of creating a new one each time. There's also a no-token-required path, `src/app/api/hosting/export/route.ts` renders the same static HTML and returns it as a direct file download, for anyone who wants to host it themselves anywhere, not just Netlify.
-- **HTML generation is plain string templating, not React SSR.** `src/lib/export-html.ts` intentionally does *not* import `<SitePreview>` or `react-dom/server` — App Router route handlers run under React's `react-server` module condition, which blocks importing `react-dom/server` (Next/Turbopack errors on it at build time). So the exported HTML, including its cart markup and JS, is generated by hand-written template strings in `export-html.ts` that mirror `site-preview.tsx`'s structure and behavior. **These two files can drift out of sync** — if you change the cart or a block's layout in `site-preview.tsx`, update the matching code in `export-html.ts` by hand. There's no shared source of truth between the in-app preview and the exported/deployed HTML.
+- The Home block editor is fully functional — add, reorder (up/down, not drag-and-drop), edit, delete blocks; every field updates the live preview immediately.
+- **Shop shows the entire real product catalogue** from Product Management (`seedProducts` in `src/lib/product-data.ts`), not a curated subset — Home's Featured Products block still shows a picked subset as a teaser, matching the real-site pattern of "home page highlights, full catalogue lives on the shop page."
+- **Product pages are real and dynamic.** Click any product card anywhere (Home teaser, Shop grid) and the preview actually navigates to that product's own page, showing its real name/price/tier from Product Management. In the exported/deployed site this works via `product.html?id=<sku-id>`, read client-side from an embedded JSON array of the catalogue (`productPageHtml()` in `export-html.ts`) — there's no per-product static file generated, one `product.html` handles all of them via the query string.
+- **The cart is real**, not a mock, checkout just isn't connected to anything yet. In-app: `site-preview.tsx` owns cart state (`useState`, session-only). Deployed: `localStorage`-backed, shared across all four static pages via plain `<a href>` links and a page reload, no SPA router needed since it's the same origin (`cartScript()` in `export-html.ts`).
+- **Domain verification is a real DNS lookup.** `src/app/api/domain/verify/route.ts` uses Node's `dns.promises.resolveTxt()` server-side to check for a TXT record on a domain the person actually controls.
+- **Hosting is a real deploy of all four pages.** `src/app/api/hosting/deploy/route.ts` zips `index.html` + `shop.html` + `product.html` + `cart.html` (via `jszip`) and POSTs to Netlify's zip-deploy API using the person's own Netlify personal access token, sent straight through, never stored or logged. First deploy creates a new Netlify site and returns its `site_id`; pass that back in on the next deploy to update the same site. `src/app/api/hosting/export/route.ts` is the no-token path — same four-page zip, returned as a direct `florenza-site.zip` download for self-hosting anywhere.
+- **HTML generation is plain string templating, not React SSR**, and it's genuinely a *separate* implementation from `site-preview.tsx`, not a shared renderer. App Router route handlers run under React's `react-server` module condition, which blocks importing `react-dom/server` — Next/Turbopack errors on it at build time. So `src/lib/export-html.ts` hand-builds each of the four HTML documents (`homePageHtml`, `shopPageHtml`, `productPageHtml`, `cartPageHtml`) from scratch, sharing only small helpers (`navBar()`, `footerHtml()`, `cartScript()`, `productCard()`) within that same file. **`export-html.ts` and `site-preview.tsx` can drift out of sync** — any layout or behavior change to one needs the matching change made by hand in the other. There's no shared source of truth between the in-app preview and the exported/deployed site.
 
 **What's not real, and is labeled as such on the page:**
-- Checkout, on both the in-app preview and the deployed site, see above.
-- "Publish" (the button separate from Hosting) only saves the layout in React state for the current session — it does not deploy anything. Use the **Hosting** dialog for an actual live URL.
-- Images are placeholder blocks (a gradient + a text note describing what should go there), not generated or real photography. Swapping in real Florenza photography is a future step, not something this tool does.
-- The exported/deployed page loads Tailwind via a CDN `<script>` tag at runtime rather than a compiled stylesheet — fine for a real preview or a low-traffic deploy, not something to leave in place if this becomes the actual production storefront serving real customer traffic.
-- The domain dialog verifies ownership (TXT record); it does not by itself connect that domain to the Netlify site you deploy. After deploying, the person still needs to add the verified domain as a custom domain in Netlify (dashboard or API) and point its DNS at Netlify, per Netlify's own instructions. Both dialogs say this, don't let a future edit soften or merge that distinction away.
-- No inventory, order storage, shipping calculation, or tax handling. There's currently no way for a real order to happen at all (checkout is disabled), so there's nothing here that could produce an order to manage yet.
+- Checkout, everywhere, see above.
+- "Publish" (separate from Hosting) only saves the layout in React state for the session — it does not deploy anything. Use **Hosting** for an actual live URL.
+- Images are placeholder blocks (gradient + a text note), not real photography.
+- The exported/deployed pages load Tailwind via a CDN `<script>` tag rather than a compiled stylesheet — fine for a preview or a low-traffic deploy, not for real production traffic long-term.
+- The domain dialog verifies ownership only; it doesn't connect that domain to the deployed Netlify site. That's still a manual step in Netlify's own dashboard/DNS after deploying.
+- No inventory, order storage, shipping, or tax handling — there's no way for a real order to happen at all yet (checkout is disabled).
 
-**Data model**: `src/lib/website-data.ts` — `Block` (discriminated union over `BlockType`: hero, featured-products, about, testimonial, newsletter, footer), `createDefaultBlock()` for sensible per-type defaults (pre-filled with real Florenza brand voice, not lorem ipsum), `defaultPage()` for the starter template, and `storefront` — a small, deliberately separate color palette (light, warm) for the site being built, independent from the dashboard's dark theme tokens. Don't reuse `--background`/`--foreground` etc. for anything in `site-preview.tsx`, the whole point is that the tool is dark and the thing it's building is not.
+**Data model**: `src/lib/website-data.ts` — `Block` (discriminated union over `BlockType`, used only by Home: hero, featured-products, about, testimonial, newsletter, footer), `Site` (`{ home: Block[], shop: ShopConfig }` — the top-level state shape for the whole builder now, not just a block array), `SitePageId` (`"home" | "shop" | "product" | "cart"`), `sitePages` (the tab list), `createDefaultBlock()` / `defaultSite()` for starter content (real Florenza brand voice, not lorem ipsum), and `storefront` — the deliberately separate light/warm color palette for the site being built, independent from the dashboard's dark theme tokens.
 
 **Components** (`src/components/website-builder/`):
-- `block-list.tsx` — left panel, section list with reorder/delete, "Add" dropdown menu (uses the new `ui/dropdown-menu.tsx` primitive)
-- `inspector-panel.tsx` — right panel, renders the correct field set per block type; the Featured Products block's product picker is a checklist against `seedProducts`
-- `site-preview.tsx` — the actual rendered storefront, one function per block type, all using the `storefront` palette via inline styles (intentionally not Tailwind theme classes, since it's a separate design system from the dashboard); also owns the cart state (`useState`, session-only, not persisted) and the `CartDrawer` sub-component (checkout button disabled)
-- `domain-dialog.tsx` — domain input, generates a verification token client-side, shows the TXT record to add, calls the real verify API, copy-to-clipboard, regenerate token
-- `hosting-dialog.tsx` — static HTML download (no token needed) plus the real Netlify token + deploy flow, shows the live URL with copy/open actions on success
+- `block-list.tsx` / `inspector-panel.tsx` — unchanged in behavior, just now only rendered when the Home tab is active (they operate on `site.home`)
+- `shop-config-panel.tsx` — new, the right-panel form for Shop's heading/subheading, shown when the Shop tab is active
+- `site-preview.tsx` — now takes `{ site, currentPage, selectedProductId, onNavigate }` instead of a flat block list. Renders a real `NavBar` (Home/Shop/Cart links + cart count) on every page, switches on `currentPage` to render `HomePage`/`ShopPage`/`ProductPage`/`CartPage`, and renders the Home block list's footer block once globally underneath every page (extracted out of Home's own block loop so it doesn't double-render when Home is active)
+- `domain-dialog.tsx` — unchanged
+- `hosting-dialog.tsx` — now takes `{ site }` instead of `{ blocks }`; both download and deploy send/receive the full four-page zip
 
-Added `src/components/ui/dropdown-menu.tsx` (Radix dropdown, same pattern as the other hand-authored primitives) for the "Add block" menu.
+The page component (`src/app/(dashboard)/website-builder/page.tsx`) owns `site`, `currentPage`, `selectedBlockId` (Home only), and `selectedProductId` (Product only) as top-level state, and a `navigate(page, productId?)` function passed into `SitePreview` so that clicking a product card *inside the preview* drives the exact same state as the page tabs above it — the tabs and the in-preview navigation are the same source of truth, not two separate mechanisms that could disagree.
+
+Added `src/components/ui/dropdown-menu.tsx` (Radix dropdown, same pattern as the other hand-authored primitives) for the "Add block" menu on Home.
+
+### Vendor Management (`/vendor-management`)
+
+Editable vendor directory plus purchase order tracking. Client-side state only, same persistence gap as everything else in this list.
+
+- **Data model**: `src/lib/vendor-data.ts` — `Vendor` (category, contact, lead time, three 1–5 star scores: reliability/quality/price, status), `PurchaseOrder` (tied to a vendor by id, quantity, cost, status, dates).
+- **Seed data is placeholder** (`seedVendors` / `seedPurchaseOrders`), 5 illustrative vendors across florist/wrap/delivery categories.
+- **Components** (`src/components/vendor-management/`): `vendor-table.tsx` (inline-editable, star-rating clicks, status select), `add-vendor-dialog.tsx` (new vendors start "Under Review" with neutral 3-star scores, deliberately not pre-rated), `po-section.tsx` (purchase order table + its own add-dialog, joins to vendors by id for the vendor name column).
+
+### Business Structure (`/business-structure`)
+
+Org roles grouped by department with reporting lines, plus a separate SOP list. Client-side state only.
+
+- **Data model**: `src/lib/business-structure-data.ts` — `Role` (title, person, department, `reportsTo` as another role's id or `null` for top-of-chart), `SOP` (title, department, summary, Active/Draft status).
+- This is a grouped-list-with-a-"reports to"-tag layout, **not a rendered org chart with connecting lines** — that was judged out of scope for this pass given the size of everything else being built at once. If a real visual tree becomes worth the effort later, `Role.reportsTo` already has everything needed to compute one.
+- **Components** (`src/components/business-structure/`): `org-roles.tsx` (cards grouped by department, inline-editable title/person/reports-to/department), `add-role-dialog.tsx`, `sop-section.tsx` (card grid, click the status badge to toggle Active/Draft, plus its add-dialog).
+
+### Content Dashboard (`/content-dashboard`)
+
+The pillar breakdown here is **real data pulled from Instagram Manager**, not a second disconnected fake dataset — the one deliberate cross-section architecture change in this batch of work, worth understanding before touching either page.
+
+- **New shared state**: `src/lib/instagram-context.tsx` defines `InstagramPostsProvider` (wraps the whole `(dashboard)` route group in `layout.tsx`) and a `useInstagramPosts()` hook. Instagram Manager's post board now reads/writes through this context instead of its own local `useState` — same `seedPosts` starting data, same behavior from the user's point of view, but now any other page inside `(dashboard)` can read the same live post list. Content Dashboard's `PillarBreakdown` component is the first (only, so far) consumer: add a post in Instagram Manager, tagged to a pillar, and Content Dashboard's counts update without any manual sync code. If a future section needs the same kind of real cross-page data (Orders reading from Website Builder's cart, for instance), this is the pattern to follow — a context provider at the `(dashboard)` layout level, not prop-drilling and not a second copy of the data.
+- **Grid batches and the asset library are still placeholder data** (`src/lib/content-dashboard-data.ts` — `seedBatches`, `seedAssets`), there was no existing real source to wire them to the way pillar breakdown could tap Instagram Manager.
+- **Components** (`src/components/content-dashboard/`): `pillar-breakdown.tsx` (takes real `posts` as a prop, computes per-pillar counts by status), `batch-section.tsx` (grid batch cards with a progress bar toward the target post count, add-dialog), `asset-library.tsx` (a reference table, explicitly **not a file upload** — it catalogues what exists and where, it doesn't store any actual file, said directly in the add-dialog's copy so it isn't mistaken for real asset storage).
 
 ### Content Calendar (`/content-calendar`)
+
+Monthly calendar view of scheduled and posted content across Instagram, Facebook, TikTok, and Pinterest. Client-side state only, same persistence gap as the other built-out sections.
 
 - **Data model**: `src/lib/calendar-data.ts` — `CalendarItem` (platform, title, date, status), `platformColor`, and the `getMonthGrid()` helper that builds the 6×7 day grid (including leading/trailing days from adjacent months) for any given month.
 - **Seed data is a placeholder** (`seedCalendarItems`), spread across past ("Posted") and future ("Scheduled") dates so the calendar isn't empty on load.
@@ -182,15 +222,15 @@ The brief's "Business Structure,, Revenue Vendor Management" had a typo (duplica
 
 **Business**
 - Business Analytics — cross-venture performance read
-- Business Structure — org, roles, SOPs
+- Business Structure — org, roles, SOPs (**built out**, see below)
 - Product Management — SKU catalogue, cost stack, pricing, margin (**built out**, see below)
 - Revenue — money in, by SKU/channel/margin
-- Vendor Management — florists, wrap suppliers, delivery partners
+- Vendor Management — florists, wrap suppliers, delivery partners (**built out**, see below)
 - Orders — order queue and history
 - Order Fulfillment — sourced → assembled → QC → dispatched pipeline
 
 **Content**
-- Content Dashboard — command center across content pillars
+- Content Dashboard — command center across content pillars (**built out**, see below)
 - Instagram Manager — status board for post ideas, backlog through published (**built out**, see below)
 - Analytics — content/engagement performance
 - Content Calendar — cross-channel posting schedule, monthly view (**built out**, see below)
@@ -224,10 +264,13 @@ All theme tokens live in `globals.css` under `:root` and are exposed to Tailwind
 
 ## Known gaps / next steps
 
-- No auth, no data fetching, no persistence layer for client-side state. Product Management, Instagram Manager, Content Calendar, Competitor Tracker, and Website Builder all live in React state only and reset on reload — deliberately out of scope for this pass, but the first thing to fix once these sections need to survive a refresh.
-- Product Management's catalogue, Instagram Manager's post board, Content Calendar's schedule, Competitor Tracker's competitor list, and Website Builder's page layout are all placeholder/session-only data — see each section's notes above for how to swap in the real thing. **News Consolidator is the exception** — it pulls real, live data, no placeholder swap needed.
+- **Deployed and live**: `hassaan-pro/florenza-dashboard` on GitHub, auto-deploying to Vercel from `main`. Claude has push access via a fine-grained PAT (repo-scoped, Contents: Read/write) supplied directly in chat — treat any token shared this way as compromised the moment it's pasted, ask for a fresh one before pushing again if a long time has passed or the token's origin is unclear. Push directly rather than handing back zip files now that this is wired up.
+- No auth, no data fetching, no persistence layer for client-side state. Product Management, Instagram Manager, Content Calendar, Competitor Tracker, Website Builder, Vendor Management, and Business Structure all live in React state only and reset on reload — deliberately out of scope for this pass, but the first thing to fix once these sections need to survive a refresh. Content Dashboard is a partial exception: its pillar breakdown reads live from `instagram-context.tsx`'s shared provider, so it stays in sync with Instagram Manager for the session, but that shared state still resets on reload same as everything else.
+- Product Management's catalogue, Instagram Manager's post board, Content Calendar's schedule, Competitor Tracker's competitor list, Website Builder's page layout, Vendor Management's vendors/POs, Business Structure's roles/SOPs, and Content Dashboard's batches/assets are all placeholder/session-only data — see each section's notes above for how to swap in the real thing. **News Consolidator is the exception** — it pulls real, live data, no placeholder swap needed.
 - Competitor Tracker specifically has no path to real metrics without a paid third-party service or official platform API access — this isn't a "wire up a fetch call" gap like the others, it's a "need to buy or build a data source" gap. Don't treat it the same as the others when planning next steps.
-- **Website Builder has a real hosting path (Netlify, bring-your-own-token) but no payment processing right now, on purpose.** Stripe was built, tested, and then deliberately removed on request, Florenza wants a different provider added later rather than a half-finished Stripe integration sitting around. See the "Payments were deliberately removed" note at the top of the Website Builder section above before adding any payment provider back, it explains exactly what was pulled out and why, and where the two checkout buttons (in-app preview, deployed static site) are sitting disabled and ready to be wired up. Also still missing regardless of payment provider: real product photography (placeholders only), a compiled stylesheet instead of the Tailwind CDN script for the exported HTML, and any automation connecting a verified domain to the deployed Netlify site (manual step in Netlify's dashboard/DNS).
+- **Website Builder has a real hosting path (Netlify, bring-your-own-token) but no payment processing right now, on purpose.** Stripe was built, tested, and then deliberately removed on request, Florenza wants a different provider added later rather than a half-finished Stripe integration sitting around. See the "Payments were deliberately removed" note in the Website Builder section above before adding any payment provider back. Also still missing regardless of payment provider: real product photography (placeholders only), a compiled stylesheet instead of the Tailwind CDN script for the exported HTML, checkout/order storage, and any automation connecting a verified domain to the deployed Netlify site (manual step in Netlify's dashboard/DNS).
+- Business Structure's org view is a grouped list with "reports to" tags, not a rendered chart with connecting lines — flagged as out of scope for this pass in that section's notes, revisit if it's actually needed.
+- Content Dashboard's grid batches and asset library are placeholder data (no real source to wire them to yet, unlike the pillar breakdown); the asset library is explicitly a reference catalogue, not real file storage.
 - No light theme — confirm before adding one; palette was built dark-only.
 - `Instagram` icon isn't available in the installed `lucide-react` version (brand icons were removed upstream); sections needing it use generic substitutes instead (`Grid3x3` for Instagram, `ThumbsUp` for Facebook, `Music2` for TikTok, `Pin` for Pinterest). Swap if better icons show up.
 - Mobile nav uses a hand-built `Sheet` (Radix Dialog) rather than shadcn's packaged one — same API surface, fine to replace via `shadcn add sheet` later if you want it CLI-managed.

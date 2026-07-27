@@ -104,8 +104,8 @@ export function createDefaultBlock(type: BlockType): Block {
       return {
         id: id(),
         type: "featured-products",
-        heading: "The collection",
-        subheading: "Straight from the locked catalogue in Product Management",
+        heading: "New this week",
+        subheading: "A preview, see the full collection on the Shop page",
         productIds: [],
       };
     case "about":
@@ -146,19 +146,51 @@ export function createDefaultBlock(type: BlockType): Block {
 }
 
 /**
- * Starter template. Real Florenza brand context (tone, pillars, no-faces
- * rule, Lahore positioning), but every field is editable, this is a
- * starting point, not final copy.
+ * The site now has real, separate pages (Home / Shop / Product / Cart)
+ * instead of one long scrolling page — this replaced an earlier
+ * single-page block list on request, see CLAUDE.md's Website Builder
+ * notes for the "why."
+ *
+ * Home is still the free-form block editor (add/reorder/edit blocks).
+ * Shop, Product, and Cart are templated pages, not block-built — they
+ * have a small amount of editable copy (heading/subheading) but their
+ * structure is fixed, the same way Shopify's collection/product/cart
+ * page *templates* work versus its freely-editable home page sections.
  */
-export function defaultPage(): Block[] {
-  return [
-    createDefaultBlock("hero"),
-    createDefaultBlock("featured-products"),
-    createDefaultBlock("about"),
-    createDefaultBlock("testimonial"),
-    createDefaultBlock("newsletter"),
-    createDefaultBlock("footer"),
-  ];
+export type SitePageId = "home" | "shop" | "product" | "cart";
+
+export const sitePages: { id: SitePageId; label: string }[] = [
+  { id: "home", label: "Home" },
+  { id: "shop", label: "Shop" },
+  { id: "product", label: "Product" },
+  { id: "cart", label: "Cart" },
+];
+
+export type ShopConfig = {
+  heading: string;
+  subheading: string;
+};
+
+export type Site = {
+  home: Block[];
+  shop: ShopConfig;
+};
+
+export function defaultSite(): Site {
+  return {
+    home: [
+      createDefaultBlock("hero"),
+      createDefaultBlock("featured-products"),
+      createDefaultBlock("about"),
+      createDefaultBlock("testimonial"),
+      createDefaultBlock("newsletter"),
+      createDefaultBlock("footer"),
+    ],
+    shop: {
+      heading: "The full collection",
+      subheading: "Every arrangement, straight from the locked catalogue in Product Management.",
+    },
+  };
 }
 
 /**

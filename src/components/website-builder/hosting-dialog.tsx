@@ -23,11 +23,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { type Block } from "@/lib/website-data";
+import { type Site } from "@/lib/website-data";
 
 type DeployState = "idle" | "deploying" | "deployed" | "error";
 
-export function HostingDialog({ blocks }: { blocks: Block[] }) {
+export function HostingDialog({ site }: { site: Site }) {
   const [open, setOpen] = useState(false);
   const [token, setToken] = useState("");
   const [siteId, setSiteId] = useState("");
@@ -40,13 +40,13 @@ export function HostingDialog({ blocks }: { blocks: Block[] }) {
     const res = await fetch("/api/hosting/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ blocks }),
+      body: JSON.stringify({ site }),
     });
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "index.html";
+    a.download = "florenza-site.zip";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -59,7 +59,7 @@ export function HostingDialog({ blocks }: { blocks: Block[] }) {
       const res = await fetch("/api/hosting/deploy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blocks, token: token.trim(), siteId: siteId.trim() }),
+        body: JSON.stringify({ site, token: token.trim(), siteId: siteId.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -102,11 +102,14 @@ export function HostingDialog({ blocks }: { blocks: Block[] }) {
         <div className="flex flex-col gap-5">
           <div className="rounded-lg border border-border p-3.5 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm text-foreground">Download static HTML</p>
+              <p className="text-sm text-foreground">Download the site</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                A single self-contained <code className="text-[11px]">index.html</code>, upload it
-                to any static host you like. Cart works out of the box, checkout is intentionally
-                disabled for now pending a payment provider.
+                A zip with all four real pages (<code className="text-[11px]">index.html</code>,{" "}
+                <code className="text-[11px]">shop.html</code>,{" "}
+                <code className="text-[11px]">product.html</code>,{" "}
+                <code className="text-[11px]">cart.html</code>), upload it to any static host.
+                Cart works out of the box, checkout is intentionally disabled for now pending a
+                payment provider.
               </p>
             </div>
             <Button size="sm" variant="outline" onClick={handleExport}>
