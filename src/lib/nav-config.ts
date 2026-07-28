@@ -38,13 +38,8 @@ export const navGroups: NavGroup[] = [
         title: "Business Analytics",
         href: "/business-analytics",
         icon: BarChart3,
-        description:
-          "The top-level read on how Florenza is actually doing, across every venture line.",
-        comingSoon: [
-          "Revenue, margin, and order volume trends by week and month",
-          "Channel performance breakdown (paid, organic, referral)",
-          "SKU-level sell-through and pricing tier performance",
-        ],
+        description: "Cross-venture rollup, live from Orders, Product Management, and Instagram Manager.",
+        comingSoon: [],
       },
       {
         title: "Business Structure",
@@ -65,12 +60,8 @@ export const navGroups: NavGroup[] = [
         title: "Revenue",
         href: "/revenue",
         icon: Wallet,
-        description: "Where the money is actually coming from, and where it's going.",
-        comingSoon: [
-          "Revenue by SKU, pricing tier, and campaign",
-          "Cost of goods and margin by bouquet type",
-          "Payment method and settlement tracking",
-        ],
+        description: "Real revenue and margin, calculated from completed orders against real cost data.",
+        comingSoon: [],
       },
       {
         title: "Vendor Management",
@@ -83,23 +74,15 @@ export const navGroups: NavGroup[] = [
         title: "Orders",
         href: "/orders",
         icon: ShoppingCart,
-        description: "Every order, from checkout to delivered.",
-        comingSoon: [
-          "Live order queue with status filters",
-          "Customer order history and repeat-order rate",
-          "Order-level notes for gifting occasions and instructions",
-        ],
+        description: "Every order, from record-taking to delivered — the shared source of truth for Revenue and Fulfillment.",
+        comingSoon: [],
       },
       {
         title: "Order Fulfillment",
         href: "/order-fulfillment",
         icon: PackageCheck,
-        description: "The handoff from order confirmed to bouquet delivered.",
-        comingSoon: [
-          "Fulfillment pipeline board (sourced, assembled, QC, dispatched)",
-          "Delivery partner SLAs and on-time rate",
-          "Exception queue for delayed or failed deliveries",
-        ],
+        description: "The handoff from order confirmed to bouquet delivered, same orders as the Orders page.",
+        comingSoon: [],
       },
     ],
   },
@@ -125,12 +108,8 @@ export const navGroups: NavGroup[] = [
         title: "Analytics",
         href: "/analytics",
         icon: TrendingUp,
-        description: "How content is actually performing, pillar by pillar.",
-        comingSoon: [
-          "Reach, saves, and engagement rate by content pillar",
-          "Best-performing post and Reel breakdown",
-          "Follower growth against grid batch releases",
-        ],
+        description: "Content pipeline performance, live from Instagram Manager. Engagement metrics pending the real Instagram connection.",
+        comingSoon: [],
       },
       {
         title: "Content Calendar",

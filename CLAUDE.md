@@ -12,7 +12,7 @@ Read this before adding a feature or a new section.
 - **lucide-react** for icons
 - **class-variance-authority** + **tailwind-merge** + **clsx** for variant-driven component styling
 
-No backend, no database, no auth yet. Nine sections (Product Management, Instagram Manager, Content Calendar, Competitor Tracker, News Consolidator, Website Builder, Vendor Management, Business Structure, Content Dashboard) are built out with real client-side state — News Consolidator, Website Builder's domain check, and Website Builder's hosting deploy also have real server-side API routes (live RSS fetch, a real DNS lookup, and a real Netlify deploy, respectively). The rest are routed placeholders. Data layer gets wired in per-section as each one gets built out.
+No backend, no real database yet (Vercel Postgres is the plan, not provisioned as of 2026-07, see the Instagram section below). **Every Business and Content section is built out** (Product Management, Instagram Manager, Content Calendar, Competitor Tracker, News Consolidator, Website Builder, Vendor Management, Business Structure, Content Dashboard, Orders, Order Fulfillment, Revenue, Business Analytics, Analytics) with real client-side state, several sharing live data via React Context instead of holding disconnected copies (see "Orders, Order Fulfillment, Revenue, Business Analytics, Analytics" and "Instagram real connection" below). News Consolidator, Website Builder's domain check, and Website Builder's hosting deploy also have real server-side API routes (live RSS fetch, a real DNS lookup, and a real Netlify deploy, respectively). `page-shell.tsx`'s placeholder pattern is currently unused but stays as the template for any new section added later.
 
 This repo is connected to GitHub (`hassaan-pro/florenza-dashboard`) and deployed on Vercel from the `main` branch — pushes to `main` auto-deploy. Vercel's Framework Preset must be set to Next.js in Project Settings (it does **not** auto-redetect after the project already exists, only at creation, this bit Hassaan once already after a broken GitHub web-upload nested the project in subfolders and Vercel locked in "Other").
 
@@ -35,17 +35,17 @@ src/
         export/route.ts          # Zips all 4 site pages, returns florenza-site.zip for direct download
         deploy/route.ts          # Zips all 4 site pages and deploys to Netlify via the user's own token
     (dashboard)/              # Route group — everything that gets the sidebar shell
-      layout.tsx               # Renders <AppSidebar/> + <Topbar/> + page content, wrapped in InstagramPostsProvider
-      business-analytics/page.tsx
+      layout.tsx               # Renders <AppSidebar/> + <Topbar/> + page content, wrapped in InstagramPostsProvider + OrdersProvider
+      business-analytics/page.tsx  # BUILT OUT — see below
       business-structure/page.tsx  # BUILT OUT — see below
       product-management/page.tsx  # BUILT OUT — see below
-      revenue/page.tsx
+      revenue/page.tsx              # BUILT OUT — see below
       vendor-management/page.tsx   # BUILT OUT — see below
-      orders/page.tsx
-      order-fulfillment/page.tsx
+      orders/page.tsx                # BUILT OUT — see below
+      order-fulfillment/page.tsx     # BUILT OUT — see below
       content-dashboard/page.tsx   # BUILT OUT — see below
       instagram-manager/page.tsx   # BUILT OUT — see below
-      analytics/page.tsx
+      analytics/page.tsx             # BUILT OUT — see below
       content-calendar/page.tsx    # BUILT OUT — see below
       competitor-tracker/page.tsx  # BUILT OUT — see below
       news-consolidator/page.tsx   # BUILT OUT — see below
@@ -54,7 +54,7 @@ src/
     layout/
       sidebar.tsx             # Desktop fixed sidebar, grouped nav, active-state highlighting
       topbar.tsx               # Sticky header, mobile nav trigger (Sheet), current page title
-      page-shell.tsx           # Shared placeholder layout used by every unbuilt section page
+      page-shell.tsx           # Shared placeholder layout — as of 2026-07 every Business/Content section is built out, so nothing currently uses this, but it's still the pattern for any *new* section added later
     product-management/        # KPI cards, editable table, margin/cost charts, pricing strategy panel
     instagram-manager/         # Board columns, post cards, add-post dialog
     content-calendar/          # Month grid, day detail dialog, platform filters, add-item dialog
@@ -64,13 +64,15 @@ src/
     vendor-management/         # Vendor table, add-vendor dialog, purchase order section
     business-structure/        # Org roles grouped by department, add-role dialog, SOP section
     content-dashboard/         # Pillar breakdown (real data via shared context), grid batch section, asset library
+    orders/                     # Order table, add-order dialog, fulfillment board — shared across Orders and Order Fulfillment pages
+    revenue/                     # Revenue-by-SKU chart, real cost/margin join against Product Management
     ui/                        # Hand-authored shadcn-style primitives: button, card, badge, separator,
                                 # sheet, dialog, input, textarea, label, select, dropdown-menu
   lib/
     nav-config.ts              # SINGLE SOURCE OF TRUTH for every section: title, route, icon, description, "coming soon" bullets
-    product-data.ts            # Product Management data model, seed data, margin math (also consumed by Website Builder)
+    product-data.ts            # Product Management data model, seed data, margin math (also consumed by Website Builder and Revenue)
     instagram-data.ts          # Instagram Manager data model, seed data
-    instagram-context.tsx      # Shared InstagramPostsProvider/useInstagramPosts — real cross-section data source (Instagram Manager <-> Content Dashboard)
+    instagram-context.tsx      # Shared InstagramPostsProvider/useInstagramPosts — real cross-section data source (Instagram Manager <-> Content Dashboard <-> Analytics <-> Business Analytics)
     calendar-data.ts           # Content Calendar data model, seed data, month-grid helper
     competitor-data.ts         # Competitor Tracker data model, seed data
     news-data.ts                # News Consolidator types, feed source list, topic classifier, fallback data
@@ -79,6 +81,8 @@ src/
     vendor-data.ts               # Vendor Management data model, seed data
     business-structure-data.ts   # Business Structure data model (roles, SOPs), seed data
     content-dashboard-data.ts    # Content Dashboard's own data model (grid batches, assets) — pillar breakdown itself comes from instagram-context.tsx, not this file
+    orders-data.ts                # Order/OrderLineItem types, orderTotal(), lineItemFromProduct() — the shared transactional data model
+    orders-context.tsx            # Shared OrdersProvider/useOrders — real cross-section data source (Orders <-> Order Fulfillment <-> Revenue <-> Business Analytics)
     utils.ts                   # `cn()` class merge helper
 ```
 
@@ -216,23 +220,42 @@ Full SKU-level pricing, cost, profit, and margin dashboard. Everything is client
 - **Cost fields** are fixed at flowers, wrap/packaging, labor, delivery, overhead (`costFields` in `product-data.ts`). If Florenza's real cost structure has different line items, change the array there — the table and charts pick it up automatically, nothing else needs editing.
 - **recharts** was added as a dependency for this section specifically. It's the only chart library in the project — use it for any future chart rather than introducing a second one.
 
+### Orders, Order Fulfillment, Revenue, Business Analytics, Analytics — the shared-data cluster
+
+These five were built together (2026-07) because they only make sense together: Orders is the transactional source of truth, everything else reads from it (or from another section's shared context) rather than holding a second, disconnected copy of "how much money did we make." This is the same pattern as `instagram-context.tsx` feeding Content Dashboard, applied one level further.
+
+- **`src/lib/orders-context.tsx`** (`OrdersProvider`/`useOrders`) is the new shared context, wrapped around the `(dashboard)` layout alongside `InstagramPostsProvider`. `src/lib/orders-data.ts` has the `Order`/`OrderLineItem` types, `orderTotal()`, and `lineItemFromProduct()` (snapshots a Product Management SKU's name/price onto the order at record time, so later catalogue price changes don't silently rewrite historical order totals).
+- **Orders** (`/orders`) — records orders manually (`add-order-dialog.tsx`, product picker joined live to `seedProducts`), since real checkout is disabled (see Website Builder's Stripe-removal notes). This is explicitly a "record a sale taken by phone/WhatsApp" workflow, not evidence of a working storefront. Once real checkout exists, this is where those orders should land automatically instead of the manual dialog.
+- **Order Fulfillment** (`/order-fulfillment`) — a pipeline board (Sourced → Assembled → QC → Dispatched → Delivered) over the *same* orders via `useOrders()`. Moving a card's stage here and changing an order's status on the Orders page are two different fields (`fulfillmentStage` vs `status`) on the same `Order` record, don't conflate them.
+- **Revenue** (`/revenue`) — real math, not sample data: sums `orderTotal()` across orders with `status: "Completed"`, and computes cost of goods by joining each line item's `productId` back to Product Management's `seedProducts` and calling `totalCost()`. Revenue by SKU chart in `revenue-breakdown.tsx`. **Zero completed orders means the page correctly shows ₨0 everywhere** — that's accurate given the current data, not a bug to "fix" by adding fake orders.
+- **Business Analytics** (`/business-analytics`) — top-level rollup pulling from three live sources: `useOrders()` for revenue/order counts, `seedProducts` for catalogue size/margin, `useInstagramPosts()` for content pipeline counts. The page includes an explicit "what this is built from" card so nobody mistakes it for a separate analytics pipeline — there isn't one, it's the same data as the pages it summarizes.
+- **Analytics** (`/analytics`, content performance) — reuses `PillarBreakdown` from `content-dashboard/` directly (same component, same live Instagram data) rather than rebuilding it. Below that is an explicit, non-fabricated "engagement metrics aren't connected" card — reach/likes/saves need the real Instagram API connection (see below), and this page says so instead of inventing plausible-looking numbers. If the Instagram connection gets built, this is the page those metrics should land on.
+
+### Instagram real connection — planned, not built
+
+As of 2026-07 this is scoped but not started, blocked on two things only Hassaan can do:
+
+1. **A Meta Developer App** (developers.facebook.com), Instagram Business/Creator account linked to a Facebook Page, and **App Review** for `instagram_business_content_publish` + related scopes — Meta's review takes **2–4 weeks** once submitted, this is not something Claude or faster engineering can shortcut. Development-mode testing works immediately with accounts added as testers/admins in the Meta dashboard, but publishing on behalf of any other account requires the review to pass.
+2. **A real database** — decided as **Vercel Postgres** (2026-07). Claude has no tool that can provision this; it's a dashboard action (Vercel project → Storage → Create Database → Postgres), which auto-injects connection env vars into the project once created. This is required because: (a) Instagram's API has **no native "schedule for the future"** — you create a media container then publish it immediately, so "scheduling" means storing the target time ourselves and triggering the publish call at that time, and (b) Vercel serverless functions don't hold state between invocations, so both the scheduled-post queue and the OAuth tokens need real persistent storage, not React state.
+3. Once both exist, the remaining build is: an OAuth connect flow (authorization redirect + callback route storing the long-lived token in Postgres), a scheduled-posts table, and a Vercel Cron Job (`vercel.json` cron config, documented via `search_vercel_documentation`) that polls due posts and calls the Graph API's create-container-then-publish sequence. None of this exists in the codebase yet — don't assume a `/api/instagram/*` route or an `instagram-data.ts` schema exists until this note is updated to say it was actually built.
+
 ## Section map (as scaffolded)
 
 The brief's "Business Structure,, Revenue Vendor Management" had a typo (duplicate comma, missing separator). It was interpreted as **two separate sections** — "Revenue" and "Vendor Management" — giving a clean 6/6 split between the two nav groups. Flag this if it should have been one combined "Revenue & Vendor Management" section instead.
 
 **Business**
-- Business Analytics — cross-venture performance read
+- Business Analytics — cross-venture rollup, live from Orders/Product Management/Instagram Manager (**built out**, see below)
 - Business Structure — org, roles, SOPs (**built out**, see below)
 - Product Management — SKU catalogue, cost stack, pricing, margin (**built out**, see below)
-- Revenue — money in, by SKU/channel/margin
+- Revenue — real revenue/margin from completed Orders (**built out**, see below)
 - Vendor Management — florists, wrap suppliers, delivery partners (**built out**, see below)
-- Orders — order queue and history
-- Order Fulfillment — sourced → assembled → QC → dispatched pipeline
+- Orders — shared transactional source of truth (**built out**, see below)
+- Order Fulfillment — pipeline board over the same Orders (**built out**, see below)
 
 **Content**
 - Content Dashboard — command center across content pillars (**built out**, see below)
 - Instagram Manager — status board for post ideas, backlog through published (**built out**, see below)
-- Analytics — content/engagement performance
+- Analytics — content pipeline performance, engagement pending real Instagram connection (**built out**, see below)
 - Content Calendar — cross-channel posting schedule, monthly view (**built out**, see below)
 - Competitor Tracker — competitor grid/pricing/positioning (**built out**, see below)
 - News Consolidator — industry/market signal feed, live RSS (**built out**, see below)
@@ -259,16 +282,18 @@ All theme tokens live in `globals.css` under `:root` and are exposed to Tailwind
 
 - Every `ui/` primitive is a small, unstyled-by-default Radix wrapper with Tailwind classes, following shadcn's `data-slot` + `cva` pattern. Copy this pattern for any new primitive rather than pulling in a different component library.
 - `cn()` (in `lib/utils.ts`) is the only way classNames get merged/overridden — always use it when a component accepts a `className` prop.
-- Section pages are server components. `sidebar.tsx` and `topbar.tsx` are client components (`usePathname`, mobile menu state) — keep that boundary; don't make a page a client component just to read the current route, use `PageShell` + `getNavItem` instead.
-- `PageShell` is intentionally generic (icon + title + description + bullet list). When a section gets built out for real, that page stops importing `PageShell` and gets its own layout — `PageShell` is a placeholder pattern, not meant to be stretched to hold real data views.
+- `sidebar.tsx`/`topbar.tsx` and every built-out section page are client components (`useState`/context hooks). Only the still-hypothetical placeholder pattern (`PageShell` + `getNavItem`) is server-renderable — if a brand new section starts as a placeholder, keep that page a server component per the original pattern, don't add `"use client"` until it actually needs state.
+- `PageShell` is intentionally generic (icon + title + description + bullet list) for sections that haven't been built out yet. As of 2026-07 nothing currently imports it — every Business/Content section is built out — but it stays as the template for the next new section, whatever that ends up being.
 
 ## Known gaps / next steps
 
 - **Deployed and live**: `hassaan-pro/florenza-dashboard` on GitHub, auto-deploying to Vercel from `main`. Claude has push access via a fine-grained PAT (repo-scoped, Contents: Read/write) supplied directly in chat — treat any token shared this way as compromised the moment it's pasted, ask for a fresh one before pushing again if a long time has passed or the token's origin is unclear. Push directly rather than handing back zip files now that this is wired up.
-- No auth, no data fetching, no persistence layer for client-side state. Product Management, Instagram Manager, Content Calendar, Competitor Tracker, Website Builder, Vendor Management, and Business Structure all live in React state only and reset on reload — deliberately out of scope for this pass, but the first thing to fix once these sections need to survive a refresh. Content Dashboard is a partial exception: its pillar breakdown reads live from `instagram-context.tsx`'s shared provider, so it stays in sync with Instagram Manager for the session, but that shared state still resets on reload same as everything else.
-- Product Management's catalogue, Instagram Manager's post board, Content Calendar's schedule, Competitor Tracker's competitor list, Website Builder's page layout, Vendor Management's vendors/POs, Business Structure's roles/SOPs, and Content Dashboard's batches/assets are all placeholder/session-only data — see each section's notes above for how to swap in the real thing. **News Consolidator is the exception** — it pulls real, live data, no placeholder swap needed.
-- Competitor Tracker specifically has no path to real metrics without a paid third-party service or official platform API access — this isn't a "wire up a fetch call" gap like the others, it's a "need to buy or build a data source" gap. Don't treat it the same as the others when planning next steps.
+- **Every Business and Content section is built out as of 2026-07** — there are no more `PageShell` placeholders in either group. The next new section (if any) starts from the placeholder pattern described in Component Conventions above.
+- No auth, no persistence layer. Every built-out section's data — including the two shared contexts (`instagram-context.tsx`, `orders-context.tsx`) — lives in React state only and resets on reload. This is deliberate for now, but it's the single biggest gap left: Orders, Revenue, and Business Analytics all being "real" only holds within one browser session. **A database is already planned** (Vercel Postgres, chosen 2026-07 for the Instagram scheduling work below) — once it's provisioned, migrating these contexts from `useState` to real persisted reads/writes is the natural next step, don't treat it as a separate future decision.
+- Most sections' seed data is illustrative placeholder content, not Florenza's real numbers — see each section's own notes above for specifics (Product Management's catalogue, Instagram Manager's posts, Vendor Management's vendors, etc.). **The exceptions**: News Consolidator pulls real live RSS, and the Orders/Revenue/Business Analytics/Analytics cluster computes real math off of whatever orders and posts actually exist in the session, it just starts from a small seeded set of each.
+- Competitor Tracker specifically has no path to real metrics without a paid third-party service or official platform API access — this isn't a "wire up a fetch call" gap like the others, it's a "need to buy or build a data source" gap.
 - **Website Builder has a real hosting path (Netlify, bring-your-own-token) but no payment processing right now, on purpose.** Stripe was built, tested, and then deliberately removed on request, Florenza wants a different provider added later rather than a half-finished Stripe integration sitting around. See the "Payments were deliberately removed" note in the Website Builder section above before adding any payment provider back. Also still missing regardless of payment provider: real product photography (placeholders only), a compiled stylesheet instead of the Tailwind CDN script for the exported HTML, checkout/order storage, and any automation connecting a verified domain to the deployed Netlify site (manual step in Netlify's dashboard/DNS).
+- **Instagram real connection is scoped, not built** — see the dedicated section above. Blocked on Meta App Review (2-4 weeks, external, not an engineering task) and Vercel Postgres provisioning (a dashboard click only Hassaan can do). Don't assume any Instagram API code exists until that note says otherwise.
 - Business Structure's org view is a grouped list with "reports to" tags, not a rendered chart with connecting lines — flagged as out of scope for this pass in that section's notes, revisit if it's actually needed.
 - Content Dashboard's grid batches and asset library are placeholder data (no real source to wire them to yet, unlike the pillar breakdown); the asset library is explicitly a reference catalogue, not real file storage.
 - No light theme — confirm before adding one; palette was built dark-only.
