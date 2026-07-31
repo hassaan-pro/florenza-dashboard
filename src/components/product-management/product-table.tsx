@@ -3,6 +3,7 @@
 import { Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { cn } from "@/lib/utils";
 import {
   type Product,
@@ -57,6 +58,7 @@ export function ProductTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <th className="px-3 py-2.5 font-medium">Image</th>
             <th className="px-3 py-2.5 font-medium">SKU</th>
             <th className="px-3 py-2.5 font-medium">Product</th>
             <th className="px-3 py-2.5 font-medium">Tier</th>
@@ -80,6 +82,14 @@ export function ProductTable({
             const tone = marginTone(p);
             return (
               <tr key={p.id} className="border-b border-border/70 last:border-0 hover:bg-secondary/20">
+                <td className="px-3 py-2">
+                  <ImageUpload
+                    value={p.imageUrl}
+                    onChange={(url) => onChange(p.id, (prod) => ({ ...prod, imageUrl: url }))}
+                    className="size-12"
+                    maxWidth={800}
+                  />
+                </td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground whitespace-nowrap">
                   {p.sku}
                 </td>

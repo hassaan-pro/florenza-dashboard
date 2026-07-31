@@ -16,14 +16,16 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { seedProducts, formatPKR } from "@/lib/product-data";
+import { formatPKR, type Product } from "@/lib/product-data";
 import { type Order, type OrderLineItem, lineItemFromProduct } from "@/lib/orders-data";
 
 export function AddOrderDialog({
   nextOrderNumber,
+  products,
   onAdd,
 }: {
   nextOrderNumber: string;
+  products: Product[];
   onAdd: (order: Order) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -46,7 +48,7 @@ export function AddOrderDialog({
     if (next) reset();
   }
 
-  const items: OrderLineItem[] = seedProducts
+  const items: OrderLineItem[] = products
     .filter((p) => (quantities[p.id] ?? 0) > 0)
     .map((p) => lineItemFromProduct(p, quantities[p.id]));
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -100,7 +102,7 @@ export function AddOrderDialog({
           <div className="flex flex-col gap-1.5">
             <Label>Items</Label>
             <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto rounded-md border border-border p-2">
-              {seedProducts.map((p) => (
+              {products.map((p) => (
                 <div key={p.id} className="flex items-center gap-2.5 rounded px-1.5 py-1 text-sm">
                   <span className="flex-1 truncate">{p.name}</span>
                   <span className="text-xs text-muted-foreground tabular-nums w-20 text-right">

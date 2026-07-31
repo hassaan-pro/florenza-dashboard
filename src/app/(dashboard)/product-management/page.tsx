@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Info, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +9,8 @@ import { ProductTable } from "@/components/product-management/product-table";
 import { MarginChart } from "@/components/product-management/margin-chart";
 import { CostBreakdownChart } from "@/components/product-management/cost-breakdown-chart";
 import { PricingStrategy } from "@/components/product-management/pricing-strategy";
-import { type Product, seedProducts } from "@/lib/product-data";
+import { type Product } from "@/lib/product-data";
+import { useProducts } from "@/lib/products-context";
 
 function newProduct(index: number): Product {
   return {
@@ -24,19 +24,7 @@ function newProduct(index: number): Product {
 }
 
 export default function ProductManagementPage() {
-  const [products, setProducts] = useState<Product[]>(seedProducts);
-
-  function updateProduct(id: string, updater: (p: Product) => Product) {
-    setProducts((prev) => prev.map((p) => (p.id === id ? updater(p) : p)));
-  }
-
-  function removeProduct(id: string) {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  }
-
-  function addProduct() {
-    setProducts((prev) => [...prev, newProduct(prev.length + 1)]);
-  }
+  const { products, addProduct, updateProduct, removeProduct } = useProducts();
 
   return (
     <div className="space-y-6">
@@ -55,9 +43,12 @@ export default function ProductManagementPage() {
         <Info className="size-4 shrink-0 mt-0.5 text-primary" strokeWidth={1.75} />
         <p>
           The 8 SKUs below are placeholder sample data so the dashboard works out of the box.
-          Replace them with the real, locked 15-SKU catalogue (edit inline, or hand me the
-          list and I&apos;ll swap it into <code className="text-xs">src/lib/product-data.ts</code>).
-          Nothing here persists between page reloads yet, there&apos;s no data layer wired up.
+          Replace them with the real, locked 15-SKU catalogue, edit inline, upload real photos
+          per SKU, or hand me the list and I&apos;ll swap it into{" "}
+          <code className="text-xs">src/lib/product-data.ts</code>. This catalogue is shared
+          live with Website Builder, Orders, and Revenue, edits and uploaded images here show up
+          there immediately. Nothing persists between page reloads yet, there&apos;s no data
+          layer wired up.
         </p>
       </div>
 
@@ -73,7 +64,7 @@ export default function ProductManagementPage() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg text-foreground">Catalogue</h2>
-          <Button size="sm" variant="secondary" onClick={addProduct}>
+          <Button size="sm" variant="secondary" onClick={() => addProduct(newProduct(products.length + 1))}>
             <Plus className="size-4" />
             Add product
           </Button>

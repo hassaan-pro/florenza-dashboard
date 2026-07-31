@@ -1,6 +1,7 @@
 export type BlockType =
   | "hero"
   | "featured-products"
+  | "category-showcase"
   | "about"
   | "testimonial"
   | "newsletter"
@@ -13,7 +14,8 @@ export type HeroBlock = {
   headline: string;
   subheadline: string;
   ctaText: string;
-  imageNote: string; // placeholder description, not a real generated image
+  imageUrl?: string; // base64 data URL from the image uploader
+  imageNote: string; // fallback placeholder text, shown when imageUrl is unset
 };
 
 export type FeaturedProductsBlock = {
@@ -21,7 +23,17 @@ export type FeaturedProductsBlock = {
   type: "featured-products";
   heading: string;
   subheading: string;
-  productIds: string[]; // references Product.id from src/lib/product-data.ts
+  productIds: string[]; // references Product.id, live from ProductsProvider
+};
+
+export type CategoryShowcaseBlock = {
+  id: string;
+  type: "category-showcase";
+  heading: string;
+  subheading: string;
+  // Categories are always the 3 pricing tiers (Classic/Signature/Luxury) —
+  // not independently configurable, tier names/positioning live in
+  // Product Management, this block just displays them.
 };
 
 export type AboutBlock = {
@@ -29,6 +41,7 @@ export type AboutBlock = {
   type: "about";
   heading: string;
   body: string;
+  imageUrl?: string;
   imageNote: string;
 };
 
@@ -60,6 +73,7 @@ export type FooterBlock = {
 export type Block =
   | HeroBlock
   | FeaturedProductsBlock
+  | CategoryShowcaseBlock
   | AboutBlock
   | TestimonialBlock
   | NewsletterBlock
@@ -68,6 +82,7 @@ export type Block =
 export const blockLabels: Record<BlockType, string> = {
   hero: "Hero",
   "featured-products": "Featured Products",
+  "category-showcase": "Category Showcase",
   about: "About / Story",
   testimonial: "Testimonial",
   newsletter: "Newsletter Signup",
@@ -77,6 +92,7 @@ export const blockLabels: Record<BlockType, string> = {
 export const blockDescriptions: Record<BlockType, string> = {
   hero: "Full-width opener, headline and a call to action",
   "featured-products": "Pulls live SKUs straight from Product Management",
+  "category-showcase": "Classic / Signature / Luxury tier cards linking to Shop",
   about: "Brand story block with a supporting image",
   testimonial: "Single-quote social proof block",
   newsletter: "Email capture with a heading and a button",
@@ -107,6 +123,13 @@ export function createDefaultBlock(type: BlockType): Block {
         heading: "New this week",
         subheading: "A preview, see the full collection on the Shop page",
         productIds: [],
+      };
+    case "category-showcase":
+      return {
+        id: id(),
+        type: "category-showcase",
+        heading: "Shop by tier",
+        subheading: "From everyday gestures to statement pieces.",
       };
     case "about":
       return {
@@ -171,16 +194,34 @@ export type ShopConfig = {
   subheading: string;
 };
 
+/**
+ * Site-wide header/nav config — not per-page, appears on all 4 pages.
+ * Includes an optional scrolling announcement bar (the "marquee text"
+ * request) above the nav.
+ */
+export type HeaderConfig = {
+  logoText: string;
+  showAnnouncement: boolean;
+  announcementText: string;
+};
+
 export type Site = {
+  header: HeaderConfig;
   home: Block[];
   shop: ShopConfig;
 };
 
 export function defaultSite(): Site {
   return {
+    header: {
+      logoText: "Florenza",
+      showAnnouncement: true,
+      announcementText: "Same-day delivery across Lahore · New arrivals every Friday",
+    },
     home: [
       createDefaultBlock("hero"),
       createDefaultBlock("featured-products"),
+      createDefaultBlock("category-showcase"),
       createDefaultBlock("about"),
       createDefaultBlock("testimonial"),
       createDefaultBlock("newsletter"),
@@ -207,4 +248,13 @@ export const storefront = {
   border: "#e8ddc9",
   accent: "#b8804a",
   accentSoft: "#f1e2cd",
+};
+
+export const tierCopy: Record<
+  "Classic" | "Signature" | "Luxury",
+  { blurb: string }
+> = {
+  Classic: { blurb: "Everyday gestures, priced to send without a second thought." },
+  Signature: { blurb: "The considered choice, for when it needs to land right." },
+  Luxury: { blurb: "Statement pieces, for the moments that call for one." },
 };

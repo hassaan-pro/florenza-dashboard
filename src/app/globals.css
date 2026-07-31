@@ -128,3 +128,24 @@ body {
 .bg-editorial-noise {
   background-image: radial-gradient(circle at 15% 0%, rgba(201, 166, 104, 0.06), transparent 45%);
 }
+
+/* Website Builder storefront preview: marquee announcement bar + scroll reveal.
+   Scoped by usage (only used inside site-preview.tsx), harmless elsewhere. */
+@keyframes fz-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.fz-marquee-track {
+  animation: fz-marquee 22s linear infinite;
+  display: flex;
+  width: max-content;
+}
+[data-fz-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+[data-fz-reveal].fz-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

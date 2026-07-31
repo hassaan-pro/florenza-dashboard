@@ -6,21 +6,23 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RevenueBySKU } from "@/components/revenue/revenue-breakdown";
 import { useOrders } from "@/lib/orders-context";
+import { useProducts } from "@/lib/products-context";
 import { orderTotal } from "@/lib/orders-data";
-import { seedProducts, totalCost, formatPKR } from "@/lib/product-data";
+import { totalCost, formatPKR, type Product } from "@/lib/product-data";
 
-function productCost(productId: string): number {
-  const product = seedProducts.find((p) => p.id === productId);
+function productCost(products: Product[], productId: string): number {
+  const product = products.find((p) => p.id === productId);
   return product ? totalCost(product.costs) : 0;
 }
 
 export default function RevenuePage() {
   const { orders } = useOrders();
+  const { products } = useProducts();
   const completed = orders.filter((o) => o.status === "Completed");
 
   const revenue = completed.reduce((sum, o) => sum + orderTotal(o), 0);
   const cogs = completed.reduce(
-    (sum, o) => sum + o.items.reduce((s, i) => s + productCost(i.productId) * i.quantity, 0),
+    (sum, o) => sum + o.items.reduce((s, i) => s + productCost(products, i.productId) * i.quantity, 0),
     0
   );
   const profit = revenue - cogs;
@@ -62,7 +64,7 @@ export default function RevenuePage() {
         })}
       </div>
 
-      <RevenueBySKU orders={orders} />
+      <RevenueBySKU orders={orders} products={products} />
     </div>
   );
 }

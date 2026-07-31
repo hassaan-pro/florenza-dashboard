@@ -24,10 +24,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { type Site } from "@/lib/website-data";
+import { type Product } from "@/lib/product-data";
 
 type DeployState = "idle" | "deploying" | "deployed" | "error";
 
-export function HostingDialog({ site }: { site: Site }) {
+export function HostingDialog({ site, products }: { site: Site; products: Product[] }) {
   const [open, setOpen] = useState(false);
   const [token, setToken] = useState("");
   const [siteId, setSiteId] = useState("");
@@ -40,7 +41,7 @@ export function HostingDialog({ site }: { site: Site }) {
     const res = await fetch("/api/hosting/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ site }),
+      body: JSON.stringify({ site, products }),
     });
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -59,7 +60,7 @@ export function HostingDialog({ site }: { site: Site }) {
       const res = await fetch("/api/hosting/deploy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ site, token: token.trim(), siteId: siteId.trim() }),
+        body: JSON.stringify({ site, products, token: token.trim(), siteId: siteId.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {

@@ -15,6 +15,7 @@ export type Product = {
   tier: Tier;
   price: number;
   costs: CostBreakdown;
+  imageUrl?: string; // base64 data URL from the image uploader, or unset for the placeholder
 };
 
 export const costFields: { key: keyof CostBreakdown; label: string }[] = [

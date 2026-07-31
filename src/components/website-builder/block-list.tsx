@@ -7,6 +7,7 @@ import {
   Plus,
   Sparkles,
   ShoppingBag,
+  LayoutGrid,
   Type,
   Star,
   Mail,
@@ -26,6 +27,7 @@ import { type Block, type BlockType, blockLabels, blockDescriptions } from "@/li
 const blockIcon: Record<BlockType, typeof Sparkles> = {
   hero: Sparkles,
   "featured-products": ShoppingBag,
+  "category-showcase": LayoutGrid,
   about: Type,
   testimonial: Star,
   newsletter: Mail,
@@ -35,6 +37,7 @@ const blockIcon: Record<BlockType, typeof Sparkles> = {
 const allBlockTypes: BlockType[] = [
   "hero",
   "featured-products",
+  "category-showcase",
   "about",
   "testimonial",
   "newsletter",

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BlockList } from "@/components/website-builder/block-list";
 import { InspectorPanel } from "@/components/website-builder/inspector-panel";
 import { ShopConfigPanel } from "@/components/website-builder/shop-config-panel";
+import { HeaderConfigPanel } from "@/components/website-builder/header-config-panel";
 import { SitePreview } from "@/components/website-builder/site-preview";
 import { DomainDialog } from "@/components/website-builder/domain-dialog";
 import { HostingDialog } from "@/components/website-builder/hosting-dialog";
@@ -20,11 +21,16 @@ import {
   defaultSite,
   createDefaultBlock,
 } from "@/lib/website-data";
+import { useProducts } from "@/lib/products-context";
 import { cn } from "@/lib/utils";
 
+type EditTarget = "header" | SitePageId;
+
 export default function WebsiteBuilderPage() {
+  const { products } = useProducts();
   const [site, setSite] = useState<Site>(defaultSite());
   const [currentPage, setCurrentPage] = useState<SitePageId>("home");
+  const [editTarget, setEditTarget] = useState<EditTarget>("home");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(site.home[0]?.id ?? null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
@@ -32,9 +38,14 @@ export default function WebsiteBuilderPage() {
 
   const selectedBlock = site.home.find((b) => b.id === selectedBlockId) ?? null;
 
-  function navigate(page: SitePageId, productId?: string) {
+  function navigate(page: SitePageId, opts?: { productId?: string }) {
     setCurrentPage(page);
-    if (productId) setSelectedProductId(productId);
+    if (opts?.productId) setSelectedProductId(opts.productId);
+  }
+
+  function selectTab(target: EditTarget) {
+    setEditTarget(target);
+    if (target !== "header") setCurrentPage(target);
   }
 
   function addBlock(type: BlockType) {
@@ -72,6 +83,10 @@ export default function WebsiteBuilderPage() {
     setSite((prev) => ({ ...prev, shop: updater(prev.shop) }));
   }
 
+  function updateHeaderConfig(updater: (c: Site["header"]) => Site["header"]) {
+    setSite((prev) => ({ ...prev, header: updater(prev.header) }));
+  }
+
   function handlePublish() {
     setPublished(true);
     setTimeout(() => setPublished(false), 3000);
@@ -86,13 +101,14 @@ export default function WebsiteBuilderPage() {
           </Badge>
           <h1 className="font-display text-3xl text-foreground mb-2">Website Builder</h1>
           <p className="text-muted-foreground max-w-xl">
-            Real, separate pages, Home, Shop, Product, Cart, not one long scroll. Click a
-            product anywhere in the preview to jump to its actual product page.
+            Real pages, real product images, a responsive header with a scrolling announcement
+            bar, and scroll-reveal animations on every section, not another templated-looking
+            single scroller.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <DomainDialog />
-          <HostingDialog site={site} />
+          <HostingDialog site={site} products={products} />
           <Button size="sm" onClick={handlePublish}>
             {published ? <CheckCircle2 className="size-4" /> : <Rocket className="size-4" />}
             {published ? "Saved" : "Publish"}
@@ -103,23 +119,34 @@ export default function WebsiteBuilderPage() {
       <div className="flex items-start gap-2.5 rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-foreground/85">
         <Info className="size-4 shrink-0 mt-0.5 text-primary" strokeWidth={1.75} />
         <p>
-          Home is block-built and fully editable, Shop/Product/Cart are real templated pages
-          (like Shopify&apos;s collection/product/cart templates) with the catalogue and cart wired
-          in for real. Checkout is intentionally disabled, &quot;Checkout coming soon,&quot;
-          payment processing comes later with a different provider. &quot;Publish&quot; saves
-          your layout for this session, use <span className="text-foreground">Hosting</span>{" "}
-          for a real deployed URL, all four pages included. Images are still placeholders.
+          Product images upload right in Product Management now and show up here immediately,
+          same shared catalogue, not a copy. Checkout is intentionally disabled,
+          &quot;Checkout coming soon,&quot; payment processing comes later with a different
+          provider. &quot;Publish&quot; saves your layout for this session, use{" "}
+          <span className="text-foreground">Hosting</span> for a real deployed URL, all four
+          pages, real images, animations included.
         </p>
       </div>
 
-      <div className="flex items-center gap-1 rounded-lg border border-border p-1 w-fit">
+      <div className="flex items-center gap-1 rounded-lg border border-border p-1 w-fit overflow-x-auto">
+        <button
+          onClick={() => selectTab("header")}
+          className={cn(
+            "rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
+            editTarget === "header"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Header
+        </button>
         {sitePages.map((p) => (
           <button
             key={p.id}
-            onClick={() => setCurrentPage(p.id)}
+            onClick={() => selectTab(p.id)}
             className={cn(
-              "rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors",
-              currentPage === p.id
+              "rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
+              editTarget === p.id
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground"
             )}
@@ -131,7 +158,7 @@ export default function WebsiteBuilderPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[260px_1fr_300px] gap-5">
         <div className="rounded-lg border border-border p-4 xl:order-1 order-2">
-          {currentPage === "home" ? (
+          {editTarget === "home" ? (
             <BlockList
               blocks={site.home}
               selectedId={selectedBlockId}
@@ -142,9 +169,11 @@ export default function WebsiteBuilderPage() {
             />
           ) : (
             <p className="text-xs text-muted-foreground">
-              {sitePages.find((p) => p.id === currentPage)?.label} is a templated page, not
-              block-built, there&apos;s nothing to add or reorder here. Switch to{" "}
-              <button onClick={() => setCurrentPage("home")} className="text-primary underline">
+              {editTarget === "header"
+                ? "The header has no block list, it's one site-wide config, edit it on the right."
+                : `${sitePages.find((p) => p.id === editTarget)?.label} is a templated page, not block-built, there's nothing to add or reorder here.`}{" "}
+              Switch to{" "}
+              <button onClick={() => selectTab("home")} className="text-primary underline">
                 Home
               </button>{" "}
               to use the block editor.
@@ -189,6 +218,7 @@ export default function WebsiteBuilderPage() {
             >
               <SitePreview
                 site={site}
+                products={products}
                 currentPage={currentPage}
                 selectedProductId={selectedProductId}
                 onNavigate={navigate}
@@ -198,13 +228,14 @@ export default function WebsiteBuilderPage() {
         </div>
 
         <div className="rounded-lg border border-border p-4 xl:order-3 order-3">
-          {currentPage === "home" && (
-            <InspectorPanel block={selectedBlock} onChange={updateSelectedBlock} />
+          {editTarget === "header" && (
+            <HeaderConfigPanel config={site.header} onChange={updateHeaderConfig} />
           )}
-          {currentPage === "shop" && (
-            <ShopConfigPanel config={site.shop} onChange={updateShopConfig} />
+          {editTarget === "home" && (
+            <InspectorPanel block={selectedBlock} products={products} onChange={updateSelectedBlock} />
           )}
-          {(currentPage === "product" || currentPage === "cart") && (
+          {editTarget === "shop" && <ShopConfigPanel config={site.shop} onChange={updateShopConfig} />}
+          {(editTarget === "product" || editTarget === "cart") && (
             <p className="text-xs text-muted-foreground">
               This page is fully dynamic, driven by the product catalogue and the cart, nothing
               to configure here.

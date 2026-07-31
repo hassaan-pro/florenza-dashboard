@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { renderSiteFiles } from "@/lib/export-html";
 import type { Site } from "@/lib/website-data";
+import type { Product } from "@/lib/product-data";
 
 type NetlifySite = {
   id: string;
@@ -30,6 +31,7 @@ type NetlifySite = {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const site = body?.site as Site | undefined;
+  const products = (body?.products as Product[] | undefined) ?? [];
   const token = typeof body?.token === "string" ? body.token.trim() : "";
   const siteId = typeof body?.siteId === "string" ? body.siteId.trim() : "";
 
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing Netlify personal access token." }, { status: 400 });
   }
 
-  const files = renderSiteFiles(site);
+  const files = renderSiteFiles(site, products);
   const zip = new JSZip();
   for (const [name, content] of Object.entries(files)) {
     zip.file(name, content);

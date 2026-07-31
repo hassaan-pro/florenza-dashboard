@@ -6,17 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useOrders } from "@/lib/orders-context";
 import { useInstagramPosts } from "@/lib/instagram-context";
+import { useProducts } from "@/lib/products-context";
 import { orderTotal } from "@/lib/orders-data";
-import { seedProducts, formatPKR, marginPct } from "@/lib/product-data";
+import { formatPKR, marginPct } from "@/lib/product-data";
 
 export default function BusinessAnalyticsPage() {
   const { orders } = useOrders();
   const { posts } = useInstagramPosts();
+  const { products } = useProducts();
 
   const completed = orders.filter((o) => o.status === "Completed");
   const revenue = completed.reduce((sum, o) => sum + orderTotal(o), 0);
   const avgMargin =
-    seedProducts.reduce((sum, p) => sum + marginPct(p), 0) / (seedProducts.length || 1);
+    products.reduce((sum, p) => sum + marginPct(p), 0) / (products.length || 1);
 
   const published = posts.filter((p) => p.status === "Published").length;
   const scheduled = posts.filter((p) => p.status === "Scheduled").length;
@@ -25,7 +27,7 @@ export default function BusinessAnalyticsPage() {
   const kpis = [
     { label: "Completed revenue", value: formatPKR(revenue), icon: Wallet, note: `${completed.length} completed orders` },
     { label: "Orders in flight", value: String(orders.filter((o) => o.status === "Pending" || o.status === "Confirmed").length), icon: Package2, note: "Pending + Confirmed" },
-    { label: "Catalogue", value: `${seedProducts.length} SKUs`, icon: Tags, note: `${avgMargin.toFixed(1)}% avg margin` },
+    { label: "Catalogue", value: `${products.length} SKUs`, icon: Tags, note: `${avgMargin.toFixed(1)}% avg margin` },
     { label: "Content pipeline", value: `${published} published`, icon: Grid3x3, note: `${scheduled} scheduled, ${inPipeline} in progress` },
   ];
 

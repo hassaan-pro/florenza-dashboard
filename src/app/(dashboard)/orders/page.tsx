@@ -7,10 +7,12 @@ import { Card } from "@/components/ui/card";
 import { OrderTable } from "@/components/orders/order-table";
 import { AddOrderDialog } from "@/components/orders/add-order-dialog";
 import { useOrders } from "@/lib/orders-context";
+import { useProducts } from "@/lib/products-context";
 import { orderTotal, generateOrderNumber, formatPKR } from "@/lib/orders-data";
 
 export default function OrdersPage() {
   const { orders, addOrder, updateStatus, removeOrder } = useOrders();
+  const { products } = useProducts();
 
   const activeOrders = orders.filter((o) => o.status !== "Cancelled");
   const completedRevenue = orders
@@ -43,7 +45,7 @@ export default function OrdersPage() {
             Fulfillment, Revenue, and Business Analytics.
           </p>
         </div>
-        <AddOrderDialog nextOrderNumber={generateOrderNumber(orders)} onAdd={addOrder} />
+        <AddOrderDialog nextOrderNumber={generateOrderNumber(orders)} products={products} onAdd={addOrder} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

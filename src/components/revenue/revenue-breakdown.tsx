@@ -12,14 +12,14 @@ import {
 
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { type Order } from "@/lib/orders-data";
-import { seedProducts, totalCost, formatPKR } from "@/lib/product-data";
+import { totalCost, formatPKR, type Product } from "@/lib/product-data";
 
-function productCost(productId: string): number {
-  const product = seedProducts.find((p) => p.id === productId);
+function productCost(products: Product[], productId: string): number {
+  const product = products.find((p) => p.id === productId);
   return product ? totalCost(product.costs) : 0;
 }
 
-export function RevenueBySKU({ orders }: { orders: Order[] }) {
+export function RevenueBySKU({ orders, products }: { orders: Order[]; products: Product[] }) {
   const bySku = new Map<string, { name: string; revenue: number; cost: number }>();
 
   orders
@@ -28,7 +28,7 @@ export function RevenueBySKU({ orders }: { orders: Order[] }) {
       order.items.forEach((item) => {
         const entry = bySku.get(item.productId) ?? { name: item.name, revenue: 0, cost: 0 };
         entry.revenue += item.price * item.quantity;
-        entry.cost += productCost(item.productId) * item.quantity;
+        entry.cost += productCost(products, item.productId) * item.quantity;
         bySku.set(item.productId, entry);
       });
     });
